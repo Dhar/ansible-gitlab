@@ -51,7 +51,7 @@ Example playbook for installing GitLab database and web servers on separate syst
     
     - hosts: gitlab
       roles:
-      - { role: ansible-gitlab, gitlab_db_host: "{{ gitlab_db_host }}" }
+      - { role: garnold.gitlab, gitlab_db_host: "{{ gitlab_db_host }}" }
 
 License
 -------

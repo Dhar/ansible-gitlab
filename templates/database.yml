@@ -1,0 +1,12 @@
+#
+# PRODUCTION
+#
+production:
+  adapter: mysql2
+  encoding: utf8
+  reconnect: false
+  database: {{ gitlab_db_name }}
+  pool: 10
+  username: {{ gitlab_db_user }}
+  password: "{{ gitlab_db_passwd }}"
+  host: "{{ gitlab_db_host }}"

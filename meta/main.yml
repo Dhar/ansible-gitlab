@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Gary Arnold
+  description: A role that clones and installs GitLab
+  license: MIT
+  min_ansible_version: 1.4
+  platforms:
+    - name: Ubuntu
+      versions:
+      - trusty
+  categories:
+    - web
+    - development
+dependencies:
+  - { role: joshualund.ruby-2_0_0 }
+  - { role: DavidWittman.redis }

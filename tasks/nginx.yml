@@ -1,0 +1,19 @@
+---
+- name: Install Nginx
+  apt: state=present pkg=nginx
+
+- name: Make GitLab site available
+  template: src=nginx.conf dest=/etc/nginx/sites-available/gitlab mode=0755
+  notify: restart nginx
+
+- name: Disable default Nginx site
+  file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: restart nginx
+
+- name: Enable GitLab site
+  file: src=/etc/nginx/sites-available/gitlab path=/etc/nginx/sites-enabled/gitlab state=link
+  notify: restart nginx
+
+- name: Set Nginx user
+  replace: dest=/etc/nginx/nginx.conf regexp='www-data' replace='{{ gitlab_user }}'
+  notify: restart nginx

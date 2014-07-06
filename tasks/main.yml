@@ -1,0 +1,4 @@
+---
+- include: gitlab.yml
+- include: nginx.yml
+- include: cleanup.yml

@@ -1,0 +1,17 @@
+---
+gitlab_branch: 6-9-stable
+gitlab_shell_version: master
+
+gitlab_db_host: ""
+gitlab_db_name: gitlab
+gitlab_db_user: gitlab
+gitlab_db_passwd: wj3of29ms
+
+gitlab_user: git
+gitlab_ssh_port: 22
+
+gitlab_hostname: ""
+
+gitlab_use_gmail: 1
+gitlab_email_from: gmail_account@example.com
+gitlab_email_password: lkjsf93ls

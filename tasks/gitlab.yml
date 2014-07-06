@@ -1,0 +1,96 @@
+---
+- name: Install gitlab dependencies
+  apt: pkg={{ item }} state=present
+  with_items:
+    - git
+    - libicu-dev
+    - libmysqlclient-dev
+
+- name: Create Gitlab user
+  user: name={{ gitlab_user }} comment="GitLab" createhome=yes
+
+- name: Clone GitLab source code from Github.
+  git: repo=https://github.com/gitlabhq/gitlabhq.git dest=/home/{{ gitlab_user }}/gitlab version={{ gitlab_branch }}
+  changed_when: False
+  sudo: yes
+  sudo_user: "{{ gitlab_user }}"
+
+- name: Make sure GitLab can write to the log/ directory
+  file: path=/home/{{ gitlab_user }}/gitlab/log state=directory recurse=yes mode=0700 owner={{ gitlab_user }}
+
+- name: Make sure GitLab can write to the tmp/ directory
+  file: path=/home/{{ gitlab_user }}/gitlab/tmp state=directory recurse=yes mode=0700 owner={{ gitlab_user }}
+
+- name: Create directory for satellites
+  file: state=directory path=/home/{{ gitlab_user }}/gitlab-satellites mode=0750 owner={{ gitlab_user }} group={{ gitlab_user }}
+
+- name: Make sure GitLab can write to the tmp/pids/ directory
+  file: path=/home/{{ gitlab_user }}/gitlab/tmp/pids state=directory recurse=yes mode=0700 owner={{ gitlab_user }}
+
+- name: Make sure GitLab can write to the tmp/sockets/ directory
+  file: path=/home/{{ gitlab_user }}/gitlab/tmp/sockets state=directory recurse=yes mode=0700 owner={{ gitlab_user }}
+
+- name: Make sure GitLab can write to the public/uploads/ directory
+  file: path=/home/{{ gitlab_user }}/gitlab/public/uploads state=directory recurse=yes mode=0700 owner={{ gitlab_user }}
+
+- name: Configure Unicorn
+  template: src=unicorn.rb dest=/home/{{ gitlab_user }}/gitlab/config/unicorn.rb owner={{ gitlab_user }} group={{ gitlab_user }} mode=0444
+
+- name: Configure Rack attack
+  template: src=rack_attack.rb dest=/home/{{ gitlab_user }}/gitlab/config/initializers/rack_attack.rb owner={{ gitlab_user }} group={{ gitlab_user }} mode=0444
+
+- name: Configure Rails production
+  template: src=production.rb dest=/home/{{ gitlab_user }}/gitlab/config/environments/production.rb owner={{ gitlab_user }} group={{ gitlab_user }} mode=0444
+
+- name: .gitconfig for git user
+  template: src=gitconfig dest=/home/{{ gitlab_user }}/.gitconfig owner={{ gitlab_user }} group={{ gitlab_user }} mode=0644
+
+- name: Configure GitLab
+  template: src=gitlab.yml dest=/home/{{ gitlab_user }}/gitlab/config/gitlab.yml mode=0640 owner={{ gitlab_user}} group={{ gitlab_user }}
+
+- name: Configure GitLab database settings
+  template: src=database.yml dest=/home/{{ gitlab_user }}/gitlab/config/database.yml mode=0640 owner={{ gitlab_user }} group={{ gitlab_user }}
+
+- name: Install GitLab bundle
+  command: chdir=/home/{{ gitlab_user }}/gitlab bundle install --deployment --without development test postgres aws
+  changed_when: False
+  sudo: yes
+  sudo_user: "{{ gitlab_user }}"
+
+- name: Install GitLab shell bundle
+  command: chdir=/home/{{ gitlab_user }}/gitlab bundle exec rake gitlab:shell:install[v1.9.4] REDIS_URL=redis://localhost:6379 RAILS_ENV=production
+  changed_when: False
+  sudo: yes
+  sudo_user: "{{ gitlab_user }}"
+
+- name: Initialize database and activate advanced features
+  sudo: yes
+  sudo_user: "{{ gitlab_user }}"
+  shell: yes 'yes' |  bundle exec rake gitlab:setup RAILS_ENV=production && touch /home/{{ gitlab_user }}/gitlab:setup
+  ignore_errors: yes
+  args:
+    creates: /home/{{ gitlab_user }}/gitlab:setup
+    chdir: /home/{{ gitlab_user }}/gitlab
+
+- name: Install Init Script
+  template: src=gitlab.init dest=/etc/init.d/gitlab mode=0555
+
+- name: Install gitlab defaults file
+  template: src=gitlab.default dest=/etc/default/gitlab mode=0644
+
+- name: Make GitLab start on boot
+  command: update-rc.d gitlab defaults 21
+
+- name: Set up logrotate
+  template: src=gitlab.logrotate dest=/etc/logrotate.d/gitlab mode=0644
+
+- name: Check if GitLab and its environment are configured correctly
+  command: chdir=/home/{{ gitlab_user }}/gitlab bundle exec rake gitlab:env:info RAILS_ENV=production
+  sudo: yes
+  sudo_user: "{{ gitlab_user }}"
+
+- name: Compile assets
+  command: chdir=/home/{{ gitlab_user }}/gitlab bundle exec rake assets:precompile RAILS_ENV=production
+  sudo: yes
+  sudo_user: "{{ gitlab_user }}"
+  notify: restart gitlab

@@ -5,6 +5,7 @@
     - git
     - libicu-dev
     - libmysqlclient-dev
+    - redis-tools
 
 - name: Create Gitlab user
   user: name={{ gitlab_user }} comment="GitLab" createhome=yes
@@ -62,6 +63,9 @@
   changed_when: False
   sudo: yes
   sudo_user: "{{ gitlab_user }}"
+
+- name: Configure GitLab shell
+  template: src=gitlab_shell_config.yml dest=/home/{{ gitlab_user }}/gitlab-shell/config.yml mode=0640 owner={{ gitlab_user }} group={{ gitlab_user }}
 
 - name: Initialize database and activate advanced features
   sudo: yes
